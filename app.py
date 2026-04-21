@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from database.db import get_db, init_db, seed_db, create_user, get_user_by_email
+from database.db import (
+    get_db, init_db, seed_db, create_user, get_user_by_email,
+    get_user_by_id, update_user,
+    get_expense_stats, get_category_breakdown, get_recent_expenses,
+)
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-change-me"
@@ -76,9 +80,67 @@ def dashboard():
     return render_template("dashboard.html")
 
 
-@app.route("/profile")
+@app.route("/profile", methods=["GET", "POST"])
 def profile():
-    return "Profile page — coming in Step 4"
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        action = request.form.get("action", "")
+
+        if action == "update_name":
+            new_name = request.form.get("name", "").strip()
+            if not new_name:
+                flash("Name cannot be empty.", "error")
+                return redirect(url_for("profile"))
+            update_user(session["user_id"], new_name, None)
+            session["user_name"] = new_name
+            flash("Name updated successfully.", "success")
+            return redirect(url_for("profile"))
+
+        elif action == "change_password":
+            current_pw = request.form.get("current_password", "")
+            new_pw     = request.form.get("new_password", "")
+            confirm_pw = request.form.get("confirm_password", "")
+            user = get_user_by_id(session["user_id"])
+            if not check_password_hash(user["password_hash"], current_pw):
+                flash("Current password is incorrect.", "error")
+                return redirect(url_for("profile"))
+            if len(new_pw) < 8:
+                flash("New password must be at least 8 characters.", "error")
+                return redirect(url_for("profile"))
+            if new_pw != confirm_pw:
+                flash("Passwords do not match.", "error")
+                return redirect(url_for("profile"))
+            update_user(session["user_id"], user["name"], generate_password_hash(new_pw))
+            flash("Password changed successfully.", "success")
+            return redirect(url_for("profile"))
+
+        flash("Invalid action.", "error")
+        return redirect(url_for("profile"))
+
+    user = get_user_by_id(session["user_id"])
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    stats     = get_expense_stats(session["user_id"])
+    breakdown = get_category_breakdown(session["user_id"])
+    recent    = get_recent_expenses(session["user_id"], limit=10)
+
+    parts    = user["name"].split()
+    initials = (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()
+    max_cat  = breakdown[0]["total"] if breakdown else 1
+
+    return render_template(
+        "profile.html",
+        user=user,
+        stats=stats,
+        breakdown=breakdown,
+        recent=recent,
+        initials=initials,
+        max_cat=max_cat,
+    )
 
 
 @app.route("/expenses/add")
