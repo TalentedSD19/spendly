@@ -2,17 +2,13 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "Bash(mv \"C:/D/KODING SHITZ/expense-tracker/spendly.db\" \"C:/D/KODING SHITZ/expense-tracker/spendly.db.bak\")",
       "Bash(git pull *)",
-      "Bash(tasklist)",
-      "Bash(taskkill /PID 43024 /F)",
-      "PowerShell(Get-Process | Where-Object { $_.MainWindowTitle -ne \"\" -or $_.ProcessName -match \"python|sqlite|code|cursor\" } | Select-Object Id, ProcessName, MainWindowTitle)",
-      "Bash(rm \".claude/specs/02-registration.md\")",
       "Bash(git fetch *)",
       "Bash(git merge *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git stash *)"
     ]
   }
 }
