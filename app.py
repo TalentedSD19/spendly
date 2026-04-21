@@ -1,4 +1,5 @@
 from flask import Flask, render_template
+from database.db import get_db, init_db, seed_db
 
 app = Flask(__name__)
 
@@ -60,6 +61,10 @@ def terms():
 def privacy():
     return render_template("privacy.html")
 
+
+with app.app_context():
+    init_db()
+    seed_db()
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
