@@ -55,6 +55,81 @@ def create_user(name, email, password_hash):
     conn.close()
 
 
+def get_user_by_id(user_id):
+    conn = get_db()
+    user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    conn.close()
+    return user
+
+
+def update_user(user_id, name, password_hash):
+    conn = get_db()
+    if password_hash is None:
+        conn.execute("UPDATE users SET name = ? WHERE id = ?", (name, user_id))
+    else:
+        conn.execute(
+            "UPDATE users SET name = ?, password_hash = ? WHERE id = ?",
+            (name, password_hash, user_id),
+        )
+    conn.commit()
+    conn.close()
+
+
+def get_expense_stats(user_id):
+    conn = get_db()
+    stats = conn.execute(
+        """
+        SELECT
+            COALESCE(SUM(amount), 0.0) AS total_spent,
+            COUNT(*)                   AS transaction_count,
+            (
+                SELECT category FROM expenses
+                WHERE user_id = ?
+                GROUP BY category
+                ORDER BY SUM(amount) DESC
+                LIMIT 1
+            ) AS top_category
+        FROM expenses
+        WHERE user_id = ?
+        """,
+        (user_id, user_id),
+    ).fetchone()
+    conn.close()
+    return stats
+
+
+def get_category_breakdown(user_id):
+    conn = get_db()
+    rows = conn.execute(
+        """
+        SELECT category, SUM(amount) AS total
+        FROM expenses
+        WHERE user_id = ?
+        GROUP BY category
+        ORDER BY total DESC
+        """,
+        (user_id,),
+    ).fetchall()
+    conn.close()
+    return rows
+
+
+def get_recent_expenses(user_id, limit=10):
+    conn = get_db()
+    rows = conn.execute(
+        """
+        SELECT id, amount, category, date, description
+        FROM expenses
+        WHERE user_id = ?
+        ORDER BY date DESC, created_at DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
+    ).fetchall()
+    conn.close()
+    return rows
+
+
 def seed_db():
     conn = get_db()
     row = conn.execute("SELECT COUNT(*) FROM users").fetchone()
