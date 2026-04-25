@@ -11,7 +11,7 @@
       <div class="profile-meta">
         <h2 class="profile-name">{{ user.name }}</h2>
         <p class="profile-email">{{ user.email }}</p>
-        <p class="profile-since">Member since {{ user.created_at[:10] }}</p>
+        <p class="profile-since">Member since {{ user.member_since }}</p>
       </div>
     </div>
 
@@ -115,14 +115,14 @@
         {% for row in breakdown %}
         <div class="category-row">
           <div class="category-row-header">
-            <span class="category-badge category-badge--{{ row.category | lower }}">
-              {{ row.category }}
+            <span class="category-badge category-badge--{{ row.name | lower }}">
+              {{ row.name }}
             </span>
-            <span class="category-row-amount">₹{{ "%.2f"|format(row.total) }}</span>
+            <span class="category-row-amount">₹{{ "%.2f"|format(row.amount) }}</span>
           </div>
           <div class="progress-track">
             <div class="progress-bar"
-                 style="width: {{ (row.total / max_cat * 100)|round(1) }}%"></div>
+                 style="width: {{ row.pct }}%"></div>
           </div>
         </div>
         {% endfor %}

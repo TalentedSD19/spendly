@@ -3,7 +3,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from database.db import (
     get_db, init_db, seed_db, create_user, get_user_by_email,
     get_user_by_id, update_user,
-    get_expense_stats, get_category_breakdown, get_recent_expenses,
+)
+from database.queries import (
+    get_user_by_id      as get_user_profile,
+    get_summary_stats,
+    get_recent_transactions,
+    get_category_breakdown,
 )
 
 app = Flask(__name__)
@@ -119,18 +124,17 @@ def profile():
         flash("Invalid action.", "error")
         return redirect(url_for("profile"))
 
-    user = get_user_by_id(session["user_id"])
+    user = get_user_profile(session["user_id"])
     if user is None:
         session.clear()
         return redirect(url_for("login"))
 
-    stats     = get_expense_stats(session["user_id"])
+    stats     = get_summary_stats(session["user_id"])
     breakdown = get_category_breakdown(session["user_id"])
-    recent    = get_recent_expenses(session["user_id"], limit=10)
+    recent    = get_recent_transactions(session["user_id"], limit=10)
 
     parts    = user["name"].split()
     initials = (parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")).upper()
-    max_cat  = breakdown[0]["total"] if breakdown else 1
 
     return render_template(
         "profile.html",
@@ -139,7 +143,6 @@ def profile():
         breakdown=breakdown,
         recent=recent,
         initials=initials,
-        max_cat=max_cat,
     )
 
 

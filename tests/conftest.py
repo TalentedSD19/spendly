@@ -55,12 +55,37 @@ def _make_db():
     return conn, uid
 
 
+class _NoCloseConn:
+    """Proxy around sqlite3.Connection that makes close() a no-op.
+
+    Query helpers each call conn.close() at the end. For tests we share one
+    in-memory DB across calls, so we intercept close() and keep it alive.
+    """
+    def __init__(self, conn):
+        self._conn = conn
+
+    def close(self):
+        pass
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 @pytest.fixture()
 def seeded_db(monkeypatch):
     conn, uid = _make_db()
+    wrapped = _NoCloseConn(conn)
+
+    # Patch get_db at both the db module AND the queries module — queries.py
+    # imported get_db by name at load time, so patching only database.db
+    # wouldn't reach the local binding inside that module.
     import database.db as _db
-    monkeypatch.setattr(_db, "get_db", lambda: conn)
+    import database.queries as _queries
+    monkeypatch.setattr(_db, "get_db", lambda: wrapped)
+    monkeypatch.setattr(_queries, "get_db", lambda: wrapped)
+
     yield conn, uid
+
     conn.close()
 
 
